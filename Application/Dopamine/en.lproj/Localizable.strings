@@ -119,3 +119,24 @@
 "Status_Title_Select_Package_Managers" = "Select Package Manager(s)";
 "Select_Package_Managers_Install_Message" = "If you are unsure which one to select, select Sileo";
 "Continue" = "Continue";
+
+// Mount management
+"Section_Mount" = "Mount Management";
+"Input_Mmount_Title" = "Add Mount";
+"Input_Unmount_Title" = "Manage Mounts";
+"Input_Mount_Title" = "Enter the original directory path";
+"Error_Mount_Body" = "The target directory does not exist or cannot be mounted.";
+"Select_Mount_Title" = "Select a mounted path";
+"Button_Delete_Path_Only" = "Forget Path Only";
+"Button_Delete" = "Unmount and Remove";
+"Button_View" = "View in File Manager";
+"Button_Mount" = "Mount";
+"Button_Unmount" = "Unmount";
+"Mount_Requires_Jailbreak" = "Mount management becomes available after the jailbreak is active.";
+"Mount_Success_Title" = "Mount Management";
+"Mount_Success_Body" = "Mounted %@ successfully.";
+"Mount_Failed_Body" = "Mount failed with status %d.";
+"Mount_Save_Failed_Body" = "The mount succeeded, but its path could not be saved.";
+"Mount_No_Paths_Body" = "No saved mount paths were found.";
+"Unmount_Success_Body" = "Unmounted %@ successfully.";
+"Unmount_Failed_Body" = "Unmount failed with status %d.";

@@ -132,4 +132,13 @@
 "Input_Unmount_Title_B" = "输入原始路径";
 "Input_Unmount_Path" = "输入原始路径";
 "Button_Unmount" = "确定";
+"Section_Mount" = "挂载管理";
+"Mount_Requires_Jailbreak" = "越狱生效后才可使用挂载管理。";
+"Mount_Success_Title" = "挂载管理";
+"Mount_Success_Body" = "已成功挂载 %@。";
+"Mount_Failed_Body" = "挂载失败，状态码：%d。";
+"Mount_Save_Failed_Body" = "挂载成功，但无法保存挂载路径。";
+"Mount_No_Paths_Body" = "没有已保存的挂载路径。";
+"Unmount_Success_Body" = "已成功卸载 %@。";
+"Unmount_Failed_Body" = "卸载失败，状态码：%d。";
 
