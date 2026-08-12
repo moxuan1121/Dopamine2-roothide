@@ -75,13 +75,13 @@ jobs:
           rm -rf $(xcrun --sdk iphoneos --show-sdk-path)/usr/include/xpc $(xcrun --sdk iphoneos --show-sdk-path)/usr/include/xpc.modulemap
           gmake -j$(sysctl -n hw.physicalcpu)
           VERSION=$(cat ./BaseBin/_external/basebin/.version)-$(git rev-parse --short HEAD)
-          mv ./Application/Dopamine.tipa  "./Application/Dopamine-FontMount-${VERSION}.tipa"
+          mv ./Application/Dopamine.tipa  "./Application/Dopamine-GenericMount-${VERSION}.tipa"
           echo "version=${VERSION}" >> $GITHUB_ENV
 
       - name: Upload Artifact
         id: dopamine-latest-upload
         uses: actions/upload-artifact@v4
         with:
-          name: Dopamine-FontMount-${{ env.version }}.tipa
+          name: Dopamine-GenericMount-${{ env.version }}.tipa
           path: |
-            ${{ github.workspace }}/Application/Dopamine-FontMount-${{ env.version }}.tipa
+            ${{ github.workspace }}/Application/Dopamine-GenericMount-${{ env.version }}.tipa

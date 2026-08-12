@@ -94,20 +94,28 @@ int fakelib_set_mounted(bool mounted)
 }
 */
 
-static NSString *fontMountSnapshotPath(void)
+static NSString *normalizedMountPath(const char *rawPath)
 {
-	return [JBROOT_PATH(@"/mnt") stringByAppendingString:@"/System/Library/Fonts"];
+	if (!rawPath) return nil;
+	NSString *path = [[NSString stringWithUTF8String:rawPath] stringByStandardizingPath];
+	if (![path hasPrefix:@"/"] || [path isEqualToString:@"/"]) return nil;
+	if ([path hasPrefix:JBROOT_PATH(@"/")] || [path hasPrefix:JBROOT_PATH(@"/mnt")]) return nil;
+	return path;
 }
 
-static int ensureFontMountSnapshot(void)
+static NSString *snapshotPathForMountPath(NSString *mountPath)
+{
+	return [JBROOT_PATH(@"/mnt") stringByAppendingString:mountPath];
+}
+
+static int ensureMountSnapshot(NSString *sourcePath)
 {
 	NSFileManager *fileManager = [NSFileManager defaultManager];
-	NSString *sourcePath = @"/System/Library/Fonts";
-	NSString *snapshotPath = fontMountSnapshotPath();
+	NSString *snapshotPath = snapshotPathForMountPath(sourcePath);
 	BOOL isDirectory = NO;
 
 	if (![fileManager fileExistsAtPath:sourcePath isDirectory:&isDirectory] || !isDirectory) {
-		fprintf(stderr, "FontMount: source directory is unavailable\n");
+		fprintf(stderr, "GenericMount: source directory is unavailable: %s\n", sourcePath.UTF8String);
 		return ENOENT;
 	}
 
@@ -120,28 +128,28 @@ static int ensureFontMountSnapshot(void)
 	NSString *parentPath = [snapshotPath stringByDeletingLastPathComponent];
 	NSError *error = nil;
 	if (![fileManager createDirectoryAtPath:parentPath withIntermediateDirectories:YES attributes:nil error:&error]) {
-		fprintf(stderr, "FontMount: cannot create snapshot parent: %s\n", error.localizedDescription.UTF8String);
+		fprintf(stderr, "GenericMount: cannot create snapshot parent: %s\n", error.localizedDescription.UTF8String);
 		return EIO;
 	}
 
 	NSString *temporaryPath = [snapshotPath stringByAppendingFormat:@".creating-%@", NSUUID.UUID.UUIDString];
 	[fileManager removeItemAtPath:temporaryPath error:nil];
 	if (![fileManager copyItemAtPath:sourcePath toPath:temporaryPath error:&error]) {
-		fprintf(stderr, "FontMount: snapshot copy failed: %s\n", error.localizedDescription.UTF8String);
+		fprintf(stderr, "GenericMount: snapshot copy failed: %s\n", error.localizedDescription.UTF8String);
 		[fileManager removeItemAtPath:temporaryPath error:nil];
 		return EIO;
 	}
 
 	NSArray *copiedContents = [fileManager contentsOfDirectoryAtPath:temporaryPath error:&error];
 	if (!copiedContents || copiedContents.count == 0) {
-		fprintf(stderr, "FontMount: copied snapshot is empty\n");
+		fprintf(stderr, "GenericMount: copied snapshot is empty\n");
 		[fileManager removeItemAtPath:temporaryPath error:nil];
 		return EIO;
 	}
 
 	[fileManager removeItemAtPath:snapshotPath error:nil];
 	if (![fileManager moveItemAtPath:temporaryPath toPath:snapshotPath error:&error]) {
-		fprintf(stderr, "FontMount: cannot publish snapshot: %s\n", error.localizedDescription.UTF8String);
+		fprintf(stderr, "GenericMount: cannot publish snapshot: %s\n", error.localizedDescription.UTF8String);
 		[fileManager removeItemAtPath:temporaryPath error:nil];
 		return EIO;
 	}
@@ -261,25 +269,31 @@ JBLogDebug("jbctl startup: refreshing jailbroken apps ...");
 		}
 		return -1;
 	}
-	else if (!strcmp(command, "font_mount")) {
+	else if (!strcmp(command, "mount") || !strcmp(command, "font_mount")) {
+		NSString *mountPath = !strcmp(command, "font_mount") ? @"/System/Library/Fonts" :
+			(argc > 1 ? normalizedMountPath(argv[1]) : nil);
+		if (!mountPath) return EINVAL;
 		uint64_t originalUcred = 0;
 		int result = EPERM;
 		if (jbclient_root_steal_ucred(0, &originalUcred) == 0) {
-			result = ensureFontMountSnapshot();
+			result = ensureMountSnapshot(mountPath);
 			if (result == 0) {
-				result = mount("bindfs", "/System/Library/Fonts", MNT_RDONLY,
-					(void *)fontMountSnapshotPath().fileSystemRepresentation);
+				result = mount("bindfs", mountPath.fileSystemRepresentation, MNT_RDONLY,
+					(void *)snapshotPathForMountPath(mountPath).fileSystemRepresentation);
 				if (result != 0) result = errno;
 			}
 			jbclient_root_steal_ucred(originalUcred, NULL);
 		}
 		return result;
 	}
-	else if (!strcmp(command, "font_unmount")) {
+	else if (!strcmp(command, "unmount") || !strcmp(command, "font_unmount")) {
+		NSString *mountPath = !strcmp(command, "font_unmount") ? @"/System/Library/Fonts" :
+			(argc > 1 ? normalizedMountPath(argv[1]) : nil);
+		if (!mountPath) return EINVAL;
 		uint64_t originalUcred = 0;
 		int result = EPERM;
 		if (jbclient_root_steal_ucred(0, &originalUcred) == 0) {
-			result = unmount("/System/Library/Fonts", MNT_FORCE);
+			result = unmount(mountPath.fileSystemRepresentation, MNT_FORCE);
 			if (result != 0) result = errno;
 			jbclient_root_steal_ucred(originalUcred, NULL);
 		}

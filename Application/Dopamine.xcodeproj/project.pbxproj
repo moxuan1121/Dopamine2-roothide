@@ -2241,7 +2241,7 @@
 					"$(PROJECT_DIR)/Dopamine/Resources",
 				);
 				MARKETING_VERSION = 2.4.9.25;
-				PRODUCT_BUNDLE_IDENTIFIER = com.moxuan1121.Dopamine-FontMount;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moxuan1121.Dopamine-GenericMount;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -2278,7 +2278,7 @@
 					"$(PROJECT_DIR)/Dopamine/Resources",
 				);
 				MARKETING_VERSION = 2.4.9.25;
-				PRODUCT_BUNDLE_IDENTIFIER = com.moxuan1121.Dopamine-FontMount;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moxuan1121.Dopamine-GenericMount;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";

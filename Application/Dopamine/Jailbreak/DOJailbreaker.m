@@ -648,14 +648,28 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
 
 /******************************** roothide specific *************************/
 
-    [[DOUIManager sharedInstance] sendLog:@"Preparing persistent system font mount" debug:NO];
-    int fontMountResult = exec_cmd(JBROOT_PATH("/basebin/jbctl"), "internal", "font_mount", NULL);
-    if (fontMountResult != 0) {
-        *errOut = [NSError errorWithDomain:JBErrorDomain
-                                      code:fontMountResult
-                                  userInfo:@{NSLocalizedDescriptionKey :
-                                      [NSString stringWithFormat:@"Font mount failed with error: %d", fontMountResult]}];
-        return;
+    [[DOUIManager sharedInstance] sendLog:@"Preparing persistent custom mounts" debug:NO];
+    NSString *mountConfigPath = JBROOT_PATH(@"/var/mobile/Library/RootHide/com.moxuan1121.genericmount.plist");
+    NSFileManager *mountFileManager = [NSFileManager defaultManager];
+    if (![mountFileManager fileExistsAtPath:mountConfigPath]) {
+        [mountFileManager createDirectoryAtPath:[mountConfigPath stringByDeletingLastPathComponent]
+                     withIntermediateDirectories:YES attributes:nil error:nil];
+        [@{ @"path" : @[ @"/System/Library/Fonts" ] } writeToFile:mountConfigPath atomically:YES];
+    }
+
+    NSDictionary *mountConfig = [NSDictionary dictionaryWithContentsOfFile:mountConfigPath];
+    NSArray *customMountPaths = [mountConfig[@"path"] isKindOfClass:NSArray.class] ? mountConfig[@"path"] : @[];
+    for (id configuredPath in customMountPaths) {
+        if (![configuredPath isKindOfClass:NSString.class]) continue;
+        int mountResult = exec_cmd(JBROOT_PATH("/basebin/jbctl"), "internal", "mount",
+                                   [configuredPath fileSystemRepresentation], NULL);
+        if (mountResult != 0) {
+            *errOut = [NSError errorWithDomain:JBErrorDomain
+                                          code:mountResult
+                                      userInfo:@{NSLocalizedDescriptionKey :
+                                          [NSString stringWithFormat:@"Mount failed for %@ (error %d)", configuredPath, mountResult]}];
+            return;
+        }
     }
 
     
