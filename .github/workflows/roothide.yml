@@ -16,9 +16,9 @@ jobs:
     runs-on: macos-14
     steps:
       - name: Checkout
-        run: |
-          set -x
-          git clone --recursive https://github.com/roothide/Dopamine2-roothide ${{ github.workspace }}
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
           
       - name: Install Procursus
         uses: dhinakg/procursus-action@main
@@ -75,13 +75,13 @@ jobs:
           rm -rf $(xcrun --sdk iphoneos --show-sdk-path)/usr/include/xpc $(xcrun --sdk iphoneos --show-sdk-path)/usr/include/xpc.modulemap
           gmake -j$(sysctl -n hw.physicalcpu)
           VERSION=$(cat ./BaseBin/_external/basebin/.version)-$(git rev-parse --short HEAD)
-          mv ./Application/Dopamine.tipa  "./Application/roothide-Dopamine-${VERSION}.tipa"
+          mv ./Application/Dopamine.tipa  "./Application/Dopamine-FontMount-${VERSION}.tipa"
           echo "version=${VERSION}" >> $GITHUB_ENV
 
       - name: Upload Artifact
         id: dopamine-latest-upload
         uses: actions/upload-artifact@v4
         with:
-          name: roothide-Dopamine-${{ env.version }}.tipa
+          name: Dopamine-FontMount-${{ env.version }}.tipa
           path: |
-            ${{ github.workspace }}/Application/roothide-Dopamine-${{ env.version }}.tipa
+            ${{ github.workspace }}/Application/Dopamine-FontMount-${{ env.version }}.tipa

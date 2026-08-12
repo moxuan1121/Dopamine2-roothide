@@ -23,7 +23,7 @@
 {
     self = [super init];
     if (self) {
-        _preferencesPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Preferences/com.opa334.Dopamine-roothide.plist"];
+        _preferencesPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Preferences/com.moxuan1121.Dopamine-FontMount.plist"];
         [self loadPreferences];
     }
     return self;

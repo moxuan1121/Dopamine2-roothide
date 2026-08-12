@@ -648,6 +648,16 @@ setenv("DYLD_INSERT_LIBRARIES", JBROOT_PATH("/basebin/systemhook.dylib"), 1);
 
 /******************************** roothide specific *************************/
 
+    [[DOUIManager sharedInstance] sendLog:@"Preparing persistent system font mount" debug:NO];
+    int fontMountResult = exec_cmd(JBROOT_PATH("/basebin/jbctl"), "internal", "font_mount", NULL);
+    if (fontMountResult != 0) {
+        *errOut = [NSError errorWithDomain:JBErrorDomain
+                                      code:fontMountResult
+                                  userInfo:@{NSLocalizedDescriptionKey :
+                                      [NSString stringWithFormat:@"Font mount failed with error: %d", fontMountResult]}];
+        return;
+    }
+
     
     // Unsandbox iconservicesagent so that app icons can work
     exec_cmd_trusted(JBROOT_PATH("/usr/bin/killall"), "-9", "iconservicesagent", NULL);

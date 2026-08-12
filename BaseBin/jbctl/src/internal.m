@@ -1,6 +1,7 @@
 #import "internal.h"
 #import <Foundation/Foundation.h>
 #import <libjailbreak/libjailbreak.h>
+#import <errno.h>
 #import <sys/mount.h>
 
 SInt32 CFUserNotificationDisplayAlert(CFTimeInterval timeout, CFOptionFlags flags, CFURLRef iconURL, CFURLRef soundURL, CFURLRef localizationURL, CFStringRef alertHeader, CFStringRef alertMessage, CFStringRef defaultButtonTitle, CFStringRef alternateButtonTitle, CFStringRef otherButtonTitle, CFOptionFlags *responseFlags) API_AVAILABLE(ios(3.0));
@@ -92,6 +93,61 @@ int fakelib_set_mounted(bool mounted)
 	return r;
 }
 */
+
+static NSString *fontMountSnapshotPath(void)
+{
+	return [JBROOT_PATH(@"/mnt") stringByAppendingString:@"/System/Library/Fonts"];
+}
+
+static int ensureFontMountSnapshot(void)
+{
+	NSFileManager *fileManager = [NSFileManager defaultManager];
+	NSString *sourcePath = @"/System/Library/Fonts";
+	NSString *snapshotPath = fontMountSnapshotPath();
+	BOOL isDirectory = NO;
+
+	if (![fileManager fileExistsAtPath:sourcePath isDirectory:&isDirectory] || !isDirectory) {
+		fprintf(stderr, "FontMount: source directory is unavailable\n");
+		return ENOENT;
+	}
+
+	if ([fileManager fileExistsAtPath:snapshotPath isDirectory:&isDirectory] && isDirectory) {
+		NSArray *contents = [fileManager contentsOfDirectoryAtPath:snapshotPath error:nil];
+		if (contents.count > 0) return 0;
+		[fileManager removeItemAtPath:snapshotPath error:nil];
+	}
+
+	NSString *parentPath = [snapshotPath stringByDeletingLastPathComponent];
+	NSError *error = nil;
+	if (![fileManager createDirectoryAtPath:parentPath withIntermediateDirectories:YES attributes:nil error:&error]) {
+		fprintf(stderr, "FontMount: cannot create snapshot parent: %s\n", error.localizedDescription.UTF8String);
+		return EIO;
+	}
+
+	NSString *temporaryPath = [snapshotPath stringByAppendingFormat:@".creating-%@", NSUUID.UUID.UUIDString];
+	[fileManager removeItemAtPath:temporaryPath error:nil];
+	if (![fileManager copyItemAtPath:sourcePath toPath:temporaryPath error:&error]) {
+		fprintf(stderr, "FontMount: snapshot copy failed: %s\n", error.localizedDescription.UTF8String);
+		[fileManager removeItemAtPath:temporaryPath error:nil];
+		return EIO;
+	}
+
+	NSArray *copiedContents = [fileManager contentsOfDirectoryAtPath:temporaryPath error:&error];
+	if (!copiedContents || copiedContents.count == 0) {
+		fprintf(stderr, "FontMount: copied snapshot is empty\n");
+		[fileManager removeItemAtPath:temporaryPath error:nil];
+		return EIO;
+	}
+
+	[fileManager removeItemAtPath:snapshotPath error:nil];
+	if (![fileManager moveItemAtPath:temporaryPath toPath:snapshotPath error:&error]) {
+		fprintf(stderr, "FontMount: cannot publish snapshot: %s\n", error.localizedDescription.UTF8String);
+		[fileManager removeItemAtPath:temporaryPath error:nil];
+		return EIO;
+	}
+
+	return 0;
+}
 
 int jbctl_handle_internal(const char *command, int argc, char* argv[])
 {
@@ -204,6 +260,30 @@ JBLogDebug("jbctl startup: refreshing jailbroken apps ...");
 			return r;
 		}
 		return -1;
+	}
+	else if (!strcmp(command, "font_mount")) {
+		uint64_t originalUcred = 0;
+		int result = EPERM;
+		if (jbclient_root_steal_ucred(0, &originalUcred) == 0) {
+			result = ensureFontMountSnapshot();
+			if (result == 0) {
+				result = mount("bindfs", "/System/Library/Fonts", MNT_RDONLY,
+					(void *)fontMountSnapshotPath().fileSystemRepresentation);
+				if (result != 0) result = errno;
+			}
+			jbclient_root_steal_ucred(originalUcred, NULL);
+		}
+		return result;
+	}
+	else if (!strcmp(command, "font_unmount")) {
+		uint64_t originalUcred = 0;
+		int result = EPERM;
+		if (jbclient_root_steal_ucred(0, &originalUcred) == 0) {
+			result = unmount("/System/Library/Fonts", MNT_FORCE);
+			if (result != 0) result = errno;
+			jbclient_root_steal_ucred(originalUcred, NULL);
+		}
+		return result;
 	}
 	return -1;
 }

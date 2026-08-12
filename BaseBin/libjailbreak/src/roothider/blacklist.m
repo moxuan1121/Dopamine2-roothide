@@ -49,7 +49,7 @@ NSString *getAppIdentifierFromPath(const char *path) {
 }
 
 NSArray* builtinApps = @[
-    @"com.opa334.Dopamine-roothide",
+    @"com.moxuan1121.Dopamine-FontMount",
 ];
 
 bool isBlacklistedApp(const char* identifier)
